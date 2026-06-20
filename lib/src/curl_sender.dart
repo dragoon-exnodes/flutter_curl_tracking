@@ -17,6 +17,7 @@ class CurlSender {
     required String curl,
     required String method,
     required String url,
+    String? currentRoute,
   }) async {
     try {
       await _dio.post(
@@ -26,10 +27,30 @@ class CurlSender {
           curl: curl,
           method: method,
           url: url,
+          currentRoute: currentRoute,
         ),
       );
     } catch (_) {
       // Swallow errors — never break the app's network calls
+    }
+  }
+
+  /// Sends a route change event to server. Fire-and-forget.
+  Future<void> sendRouteChange({
+    required String deviceCode,
+    required String route,
+  }) async {
+    try {
+      await _dio.post(
+        '$_serverUrl/api/route-change',
+        data: {
+          'device_code': deviceCode,
+          'route': route,
+          'timestamp': DateTime.now().millisecondsSinceEpoch,
+        },
+      );
+    } catch (_) {
+      // Swallow errors — never break the app
     }
   }
 
@@ -39,6 +60,7 @@ class CurlSender {
     required String curl,
     required String method,
     required String url,
+    String? currentRoute,
   }) {
     return {
       'device_code': deviceCode,
@@ -46,6 +68,7 @@ class CurlSender {
       'method': method,
       'url': url,
       'timestamp': DateTime.now().millisecondsSinceEpoch,
+      if (currentRoute != null) 'current_route': currentRoute,
     };
   }
 }

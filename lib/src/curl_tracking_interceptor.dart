@@ -15,6 +15,7 @@ class CurlTrackingInterceptor extends Interceptor {
       url: options.uri.toString(),
     );
 
+
     // Store locally for in-app log viewer
     HttpLogsService.instance.addLog(
       method: options.method,
