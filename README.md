@@ -86,7 +86,65 @@ Widget build(BuildContext context) {
 }
 ```
 
-### 5. Show connect code in a settings screen (optional)
+### 5. Track current route (optional)
+
+Real-time route tracking lets the web dashboard show which screen the app is currently on.
+
+#### Navigator 1.0 / simple apps
+
+Pass `CurlTracking.navigatorObserver` to your `MaterialApp`:
+
+```dart
+MaterialApp(
+  navigatorObservers: [
+    if (kDebugMode) CurlTracking.navigatorObserver,
+  ],
+  home: const HomeScreen(),
+);
+```
+
+#### GoRouter (with ShellRoute / nested navigators)
+
+`NavigatorObserver` only catches the root navigator, so it misses routes inside a `ShellRoute`. Use `routeInformationProvider` instead — it fires for **all** navigations regardless of nesting:
+
+```dart
+class _MyAppState extends State<MyApp> {
+  late final GoRouter _router;
+
+  @override
+  void initState() {
+    super.initState();
+    _router = GoRouter(/* your config */);
+
+    if (kDebugMode) {
+      _router.routeInformationProvider.addListener(_reportRoute);
+      // report initial route after first frame
+      WidgetsBinding.instance.addPostFrameCallback((_) => _reportRoute());
+    }
+  }
+
+  void _reportRoute() {
+    final path = _router.routeInformationProvider.value.uri.path;
+    if (path.isNotEmpty) CurlTracking.instance?.onRouteChanged(path);
+  }
+
+  @override
+  void dispose() {
+    if (kDebugMode) {
+      _router.routeInformationProvider.removeListener(_reportRoute);
+    }
+    super.dispose();
+  }
+}
+```
+
+#### AutoRoute / other packages
+
+Use `CurlTracking.navigatorObserver` on the **root** navigator. If your router uses nested navigators for tabs/shells, fall back to the `routeInformationProvider` pattern above (or listen to your router's equivalent notifier).
+
+---
+
+### 6. Show connect code in a settings screen (optional)
 
 ```dart
 import 'package:flutter_curl_tracking/flutter_curl_tracking.dart';
@@ -114,6 +172,12 @@ await CurlTracking.init(serverUrl: 'http://localhost:8080');
 
 // Get the 6-character device code
 final code = await CurlTracking.getDeviceCode();
+
+// Report current route (call whenever the route changes)
+CurlTracking.instance?.onRouteChanged('/home');
+
+// Pre-built NavigatorObserver for Navigator 1.0 / basic GoRouter setups
+CurlTracking.navigatorObserver; // → CurlTrackingNavigatorObserver
 ```
 
 ### CurlTrackingInterceptor
